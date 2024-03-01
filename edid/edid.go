@@ -3,6 +3,7 @@ package edid
 import (
 	"fmt"
 	"encoding/binary"
+	"strings"
 )
 
 const (
@@ -36,9 +37,6 @@ const (
 	CTA_EXT_DTD_START_SIZE = 1 // 1 byte CTA extension DTD start
 	CTA_EXT_NR_OF_DTDS_SIZE = 1 // 1 byte CTA extension number of DTDs
 
-)
-
-const (
 	ESTABLISHED_TIMINGS_720x400_70Hz = 0x80
 	ESTABLISHED_TIMINGS_720x400_88Hz = 0x40
 	ESTABLISHED_TIMINGS_640x480_60Hz = 0x20
@@ -74,6 +72,31 @@ const (
 	BDP_COMPOSITE_SYNC = 0x04
 	BDP_SYNC_ON_GREEN = 0x02
 	BDP_VSYNC_SERRATED = 0x01
+
+	FD_INTERLACED = 0x80
+	FD_STEREO = 0x60
+	FD_DIGITAL_ANALOG_SYNC = 0x10
+	FD_ANALOG_SYNC = 0x08
+	FD_ANALOG_SERRATED_VSYNC = 0x04
+	FD_ANALOG_SYNC_ON_GREEN = 0x02
+	FD_DIGITAL_COMPOSITE_SYNC = 0x08
+	FD_DIGITAL_SERRATION = 0x04
+	FD_DIGITAL_VSYNC_POLARITY = 0x04
+	FD_DIGITAL_HSYNC_POLARITY = 0x02
+	FD_STEREO_MODE = 0x01
+
+	DTD_TYPE_MANUFACTURER_SPECIFIC = 0x0f
+	DTD_TYPE_MONITOR_SERIAL_NUMBER = 0xFF
+	DTD_TYPE_UNSPECIFIED = 0xFE
+	DTD_TYPE_RANGE_LIMITS = 0xFD
+	DTD_TYPE_MONITOR_NAME = 0xFC
+	DTD_TYPE_WHITE_POINT_DATA = 0xFB
+	DTD_TYPE_STANDARD_TIMING_IDENTIFICATION = 0xFA
+	DTD_TYPE_COLOR_POINT_DATA = 0xF9
+	DTD_TYPE_CVT_3_BYTE_CODE = 0xF8
+	DTD_TYPE_ADDITIONAL_STANDARD_TIMING = 0xF7
+	DTD_TYPE_DUMMY = 0x10
+
 )
 
 
@@ -87,7 +110,29 @@ type CTA_EXT_BLOCK struct {
 	dtdStart byte
 }
 
+type DTD struct {
+	pixelClock [2]byte
+	horizontalActiveLSB byte
+	horizontalBlankingLSB byte
+	horizontalMSB byte
+	verticalActiveLSB byte
+	verticalBlankingLSB byte
+	verticalMSB byte
+	horizontalFrontPorchLSB byte
+	horizontalSyncPulseLSB byte
+	verticalFrontPorchSyncPulseLSB byte
+	horizontalVerticalMSB byte
+	horizontalImageSize byte
+	verticalImageSize byte
+	sizeMSB byte
+	horizontalBorder byte
+	verticalBorder byte
+	features byte
+}
+
+
 type EDID struct {
+	rawData [EXTENDED_EDID_SIZE]byte
 	fixedHeader [FIXED_HEADER_SIZE]byte
 	manufacturerId [MANUFACTURER_ID_SIZE]byte
 	productCode [PRODUCT_CODE_SIZE]byte
@@ -110,6 +155,7 @@ func ReadEDID(data []byte) (EDID, error) {
 	if len(data) != EDID_SIZE && len(data) != EXTENDED_EDID_SIZE{
 		return edid, fmt.Errorf("Invalid EDID size: %d", len(data))
 	}
+	copy(edid.rawData[:], data)
 
 	offset := 0
 	copy(edid.fixedHeader[:], data[offset:offset+FIXED_HEADER_SIZE])
@@ -144,6 +190,7 @@ func ReadEDID(data []byte) (EDID, error) {
 		copy(edid.displayDescriptor[i][:], data[offset:offset+DISPLAY_DESCRIPTOR_SIZE])
 		offset += DISPLAY_DESCRIPTOR_SIZE
 	}
+
 
 	edid.extensionFlag = data[offset]
 	offset += EXTENSION_FLAG_SIZE
@@ -401,6 +448,211 @@ func parseStandardTimings(st [STANDARD_TIMINGS_COUNT][STANDARD_TIMINGS_SIZE]byte
 	}
 }
 
+func parseDisplayDescriptorFeatures(fd byte) {
+	interlaced := (fd & FD_INTERLACED) >> 7
+	if interlaced == 0x01 {
+		fmt.Println("\t\t\tSignal type: Interlaced")
+	} else {
+		fmt.Println("\t\t\tSignal type: Progressive")
+	}
+	stereoMode := (fd & FD_STEREO) >> 4 | (fd & FD_STEREO_MODE)
+	switch stereoMode {
+	case 0x00:
+	case 0x01:
+		fmt.Println("\t\t\tNo stereo")
+	case 0x02:
+		fmt.Println("\t\t\tField sequential stereo, right image when stereo sync signal is high")
+	case 0x03:
+		fmt.Println("\t\t\tTwo way interleaved stereo, right image on even lines")
+	case 0x04:
+		fmt.Println("\t\t\tField sequential stereo, left image when stereo sync signal is high")
+	case 0x05:
+		fmt.Println("\t\t\tTwo way interleaved stereo, left image on even lines")
+	case 0x06:
+		fmt.Println("\t\t\tFour way interleaved stereo")
+	case 0x07:
+		fmt.Println("\t\t\tSide by side interleaved stereo")
+	default:
+		fmt.Println("\t\t\tReserved")
+	}
+	digitalSync := (fd & FD_DIGITAL_ANALOG_SYNC) >> 4
+	if digitalSync == 0x01 {
+		fmt.Println("\t\t\tDigital sync")
+
+		digitalCompositeSync := (fd & FD_DIGITAL_COMPOSITE_SYNC) >> 3
+		if digitalCompositeSync == 0x00 {
+			fmt.Println("\t\t\tDigital composite sync")
+			digitalSerrated := (fd & FD_DIGITAL_SERRATION) >> 2
+			if digitalSerrated == 0x01 {
+				fmt.Println("\t\t\tDigital serrated vsync")
+			} else {
+				fmt.Println("\t\t\tDigital vsync not serrated")
+			}
+			digitalHSyncPolarity := (fd & FD_DIGITAL_HSYNC_POLARITY) >> 1
+			if digitalHSyncPolarity == 0x01 {
+				fmt.Println("\t\t\tDigital HSync positive")
+			} else {
+				fmt.Println("\t\t\tDigital HSync negative")
+			}
+		} else {
+			fmt.Println("\t\t\tDigital separate sync")
+			digitalVsyncPolarity := (fd & FD_DIGITAL_VSYNC_POLARITY) >> 2
+			if digitalVsyncPolarity == 0x01 {
+				fmt.Println("\t\t\tDigital VSync positive")
+			} else {
+				fmt.Println("\t\t\tDigital VSync negative")
+			}
+			digitalHSyncPolarity := (fd & FD_DIGITAL_HSYNC_POLARITY) >> 1
+			if digitalHSyncPolarity == 0x01 {
+				fmt.Println("\t\t\tDigital HSync positive")
+			} else {
+				fmt.Println("\t\t\tDigital HSync negative")
+			}
+		}
+	} else {
+		fmt.Println("\t\t\tAnalog sync")
+		analogSync := (fd & FD_ANALOG_SYNC) >> 3
+		if analogSync == 0x01 {
+			fmt.Println("\t\t\tAnalog bipolar composite sync ")
+		} else {
+			fmt.Println("\t\t\tAnalog composite sync")
+		}
+		analogSerratedVsync := (fd & FD_ANALOG_SERRATED_VSYNC) >> 2
+		if analogSerratedVsync == 0x01 {
+			fmt.Println("\t\t\tAnalog serrated vsync")
+		} else {
+			fmt.Println("\t\t\tAnalog vsync not serrated")
+		}
+		analogSyncOnGreen := (fd & FD_ANALOG_SYNC_ON_GREEN) >> 1
+		if analogSyncOnGreen == 0x01 {
+			fmt.Println("\t\t\tAnalog sync on all RGB signals")
+		} else {
+			fmt.Println("\t\t\tAnalog sync on green")
+		}
+	}
+}
+
+func parseDisplayTimingDescriptor(dd [DISPLAY_DESCRIPTOR_SIZE]byte) {
+	var dtd DTD
+	copy(dtd.pixelClock[:], dd[0:2])
+	dtd.horizontalActiveLSB = dd[2]
+	dtd.horizontalBlankingLSB = dd[3]
+	dtd.horizontalMSB = dd[4]
+	dtd.verticalActiveLSB = dd[5]
+	dtd.verticalBlankingLSB = dd[6]
+	dtd.verticalMSB = dd[7]
+	dtd.horizontalFrontPorchLSB = dd[8]
+	dtd.horizontalSyncPulseLSB = dd[9]
+	dtd.verticalFrontPorchSyncPulseLSB = dd[10]
+	dtd.horizontalVerticalMSB = dd[11]
+	dtd.horizontalImageSize = dd[12]
+	dtd.verticalImageSize = dd[13]
+	dtd.sizeMSB = dd[14]
+	dtd.horizontalBorder = dd[15]
+	dtd.verticalBorder = dd[16]
+	dtd.features = dd[17]
+	fmt.Printf("\t\tPixel Clock: %f MHz\n", float64(binary.LittleEndian.Uint16([]byte(dtd.pixelClock[:])))/ 100.0)
+	horizontalActive := (int(dtd.horizontalMSB & 0xf0 ) << 4) | int(dtd.horizontalActiveLSB)
+	blanking := (int(dtd.horizontalMSB & 0x0f) << 8) | int(dtd.horizontalBlankingLSB)
+	verticalActive := (int(dtd.verticalMSB & 0xf0) << 4) | int(dtd.verticalActiveLSB)
+	verticalBlanking := (int(dtd.verticalMSB & 0x0f) << 8) | int(dtd.verticalBlankingLSB)
+	horizontalFrontPorch := (int(dtd.horizontalVerticalMSB & 0xC0) << 2) | (int(dtd.horizontalFrontPorchLSB))
+	horizontalSyncPulse := (int(dtd.horizontalVerticalMSB & 0x30) << 4) | (int(dtd.horizontalSyncPulseLSB))
+	verticalFrontPorch := (int(dtd.horizontalVerticalMSB & 0x0c) << 2) |(int(dtd.verticalFrontPorchSyncPulseLSB & 0xF0) >> 4)
+	verticalSyncPulse :=  (int(dtd.horizontalVerticalMSB & 0x03) << 4) | (int(dtd.verticalFrontPorchSyncPulseLSB & 0x0F))
+	horizontalImageSize := (int(dtd.sizeMSB & 0xF0) << 4) | (int(dtd.horizontalImageSize))
+	verticalImageSize := (int(dtd.sizeMSB & 0x0F) << 8) | (int(dtd.verticalImageSize))
+
+	fmt.Printf("\t\tHorizontal Active: %d\n", horizontalActive)
+	fmt.Printf("\t\tHorizontal Blanking: %d\n", blanking)
+	fmt.Printf("\t\tVertical Active: %d\n", verticalActive)
+	fmt.Printf("\t\tVertical Blanking: %d\n", verticalBlanking)
+	fmt.Printf("\t\tHorizontal Front Porch: %d\n", horizontalFrontPorch)
+	fmt.Printf("\t\tHorizontal Sync Pulse: %d\n", horizontalSyncPulse)
+	fmt.Printf("\t\tVertical Front Porch: %d\n", verticalFrontPorch)
+	fmt.Printf("\t\tVertical Sync Pulse: %d\n", verticalSyncPulse)
+	fmt.Printf("\t\tImage Size: %dmm x %dmm\n", horizontalImageSize, verticalImageSize)
+	fmt.Printf("\t\tHorizontal Border: %d\n", dtd.horizontalBorder)
+	fmt.Printf("\t\tVertical Border: %d\n", dtd.verticalBorder)
+	fmt.Printf("\t\tFeatures:\n")
+	parseDisplayDescriptorFeatures(dtd.features)
+
+}
+
+func parseDisplayRangeLimitDescriptor(drd [DISPLAY_DESCRIPTOR_SIZE]byte) {
+	horizontRateOffset := (drd[4] & 0x0C) >> 2
+	verticalRateOffset := (drd[4] & 0x03)
+	verticalFieldRateMin := int(drd[5])
+	verticalFieldRateMax := int(drd[6])
+	if verticalRateOffset == 0x3 {
+		verticalFieldRateMin += 255
+		verticalFieldRateMax += 255
+	} else if verticalRateOffset == 0x2 {
+		verticalFieldRateMax += 255
+	}
+	horizontalLineRateMin := int(drd[7])
+	horizontalLineRateMax := int(drd[8])
+	if horizontRateOffset == 0x3 {
+		horizontalLineRateMin += 255
+		horizontalLineRateMax += 255
+	} else if horizontRateOffset == 0x2 {
+		horizontalLineRateMax += 255
+	}
+	maxPixelClock := int(drd[9]) * 10
+	// extendedTimingType := drd[10]
+	// videoTimingParameters := drd[11:18]
+
+	fmt.Printf("\t\tVertical Field Rate: %d - %d Hz\n", verticalFieldRateMin, verticalFieldRateMax)
+	fmt.Printf("\t\tHorizontal Line Rate: %d - %d kHz\n", horizontalLineRateMin, horizontalLineRateMax)
+	fmt.Printf("\t\tMax Pixel Clock: %d MHz\n", maxPixelClock)
+}
+
+func parseDisplayDescriptor(dd [DISPLAY_DESCRIPTOR_COUNT][DISPLAY_DESCRIPTOR_SIZE]byte) {
+	for i := 0; i < DISPLAY_DESCRIPTOR_COUNT; i++ {
+		if dd[i][0] != 0x00 && dd[i][1] != 0x00 {
+			fmt.Printf("\tDisplay Descriptor %d\n", i)
+			parseDisplayTimingDescriptor(dd[i])
+		} else {
+			descriptorType := dd[i][3]
+			switch descriptorType {
+			case DTD_TYPE_MANUFACTURER_SPECIFIC:
+				fmt.Println("\tDisplay Descriptor ", i, ": Manufacturer specific: ", strings.Replace(string(dd[i][5:]), "\n","",-1))
+			case DTD_TYPE_MONITOR_SERIAL_NUMBER:
+				fmt.Println("\tDisplay Descriptor ", i, ": Monitor serial number: ", strings.Replace(string(dd[i][5:]), "\n","",-1))
+			case DTD_TYPE_UNSPECIFIED:
+				fmt.Println("\tDisplay Descriptor ", i, ": Unspecified")
+			case DTD_TYPE_RANGE_LIMITS:
+				fmt.Println("\tDisplay Descriptor ", i, ": Range limits")
+				parseDisplayRangeLimitDescriptor(dd[i])
+			case DTD_TYPE_MONITOR_NAME:
+				fmt.Println("\tDisplay Descriptor ", i, ": Monitor name: ", strings.Replace(string(dd[i][5:]), "\n","",-1))
+			case DTD_TYPE_WHITE_POINT_DATA:
+				fmt.Println("\tDisplay Descriptor ", i, ": White point data")
+			case DTD_TYPE_STANDARD_TIMING_IDENTIFICATION:
+				fmt.Println("\tDisplay Descriptor ", i, ": Standard timing identification")
+			case DTD_TYPE_COLOR_POINT_DATA:
+				fmt.Println("\tDisplay Descriptor ", i, ": Color point data")
+			case DTD_TYPE_CVT_3_BYTE_CODE:
+				fmt.Println("\tDisplay Descriptor ", i, ": CVT 3-byte code")
+			case DTD_TYPE_ADDITIONAL_STANDARD_TIMING:
+				fmt.Println("\tDisplay Descriptor ", i, ": Additional standard timing")
+			case DTD_TYPE_DUMMY:
+				fmt.Println("\tDisplay Descriptor ", i, ": Dummy")
+			default:
+				fmt.Println("\tDisplay Descriptor ", i, ": Reserved")
+			}
+		}
+	}
+}
+
+func (edid EDID) Checksum() bool {
+	var sum byte
+	for _, b := range edid.rawData[:EDID_SIZE-1] {
+		sum += b
+	}
+	return (int(sum) + int(edid.checksum) == 256)
+}
+
 func (edid EDID) Parse() error {
 	var manId [3]byte
 	manId[0] = manIdByteToChar((edid.manufacturerId[0] >> 2) & 0x1F)
@@ -426,5 +678,11 @@ func (edid EDID) Parse() error {
 	fmt.Printf("Standard Timings:\n")
 	parseStandardTimings(edid.standardTimings)
 
+	fmt.Printf("Display Timing Descriptor:\n")
+	parseDisplayDescriptor(edid.displayDescriptor)
+
+	fmt.Printf("Extension Flag: 0x%02X\n", edid.extensionFlag)
+	fmt.Printf("Checksum: 0x%02X\n", edid.checksum)
+	fmt.Printf("Checksum Valid: %t\n", edid.Checksum())
 	return nil
 }

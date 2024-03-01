@@ -24,10 +24,10 @@ func main() {
 		fmt.Println(err)
 	}
 
-	edid, err := edid.ReadEDID(data)
+	edidObj, err := edid.ReadEDID(data)
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(edid)
-	edid.Parse()
+	fmt.Println(edidObj)
+	edidObj.Parse()
 }
