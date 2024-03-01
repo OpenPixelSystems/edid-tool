@@ -1,158 +1,155 @@
 package edid
 
 import (
-	"fmt"
 	"encoding/binary"
+	"fmt"
 	"strings"
 )
 
 const (
-	FIXED_HEADER_SIZE = 8 // 8 bytes fixed edid header
-	MANUFACTURER_ID_SIZE = 2 // 2 bytes manufacturer id
-	PRODUCT_CODE_SIZE = 2 // 2 bytes product code
-	SERIAL_NUMBER_SIZE = 4 // 4 bytes serial number
-	WEEK_OF_MANUFACTURE_SIZE = 1 // 1 byte week of manufacture
-	YEAR_OF_MANUFACTURE_SIZE = 1 // 1 byte year of manufacture
-	EDID_VERSION_SIZE = 1 // 1 byte edid version
-	EDID_REVISION_SIZE = 1 // 1 byte edid revision
-	BASIC_DISPLAY_PARAMETERS_SIZE = 5 // 5 bytes basic display parameters
-	VIDEO_INPUT_PARAMETERS_SIZE = 1 // 1 byte video input parameters
-	HORIZONTAL_SIZE_SIZE = 1 // 1 byte horizontal size
-	VERTICAL_SIZE_SIZE = 1 // 1 byte vertical size
-	DISPLAY_GAMMA_SIZE = 1 // 1 byte display gamma
-	SUPPORTED_FEATURES_SIZE = 1 // 1 byte supported features
-	CHROMATICITY_COORDINATES_SIZE = 10 // 10 bytes chromaticity coordinates
-	ESTABLISHED_TIMINGS_SIZE = 3 // 3 bytes established timings
-	STANDARD_TIMINGS_SIZE = 2 // 2 bytes standard timings
-	STANDARD_TIMINGS_COUNT = 8 // 8 standard timings
-	DISPLAY_DESCRIPTOR_SIZE = 18 // 18 bytes display descriptor
-	DISPLAY_DESCRIPTOR_COUNT = 4 // 4 display descriptors
-	EXTENSION_FLAG_SIZE = 1 // 1 byte extension flag
-	CHECKSUM_SIZE = 1 // 1 byte checksum
-	EDID_SIZE = 128 // 128 bytes edid
-	EXTENDED_EDID_SIZE = 256 // 256 bytes edid
+	FIXED_HEADER_SIZE             = 8   // 8 bytes fixed edid header
+	MANUFACTURER_ID_SIZE          = 2   // 2 bytes manufacturer id
+	PRODUCT_CODE_SIZE             = 2   // 2 bytes product code
+	SERIAL_NUMBER_SIZE            = 4   // 4 bytes serial number
+	WEEK_OF_MANUFACTURE_SIZE      = 1   // 1 byte week of manufacture
+	YEAR_OF_MANUFACTURE_SIZE      = 1   // 1 byte year of manufacture
+	EDID_VERSION_SIZE             = 1   // 1 byte edid version
+	EDID_REVISION_SIZE            = 1   // 1 byte edid revision
+	BASIC_DISPLAY_PARAMETERS_SIZE = 5   // 5 bytes basic display parameters
+	VIDEO_INPUT_PARAMETERS_SIZE   = 1   // 1 byte video input parameters
+	HORIZONTAL_SIZE_SIZE          = 1   // 1 byte horizontal size
+	VERTICAL_SIZE_SIZE            = 1   // 1 byte vertical size
+	DISPLAY_GAMMA_SIZE            = 1   // 1 byte display gamma
+	SUPPORTED_FEATURES_SIZE       = 1   // 1 byte supported features
+	CHROMATICITY_COORDINATES_SIZE = 10  // 10 bytes chromaticity coordinates
+	ESTABLISHED_TIMINGS_SIZE      = 3   // 3 bytes established timings
+	STANDARD_TIMINGS_SIZE         = 2   // 2 bytes standard timings
+	STANDARD_TIMINGS_COUNT        = 8   // 8 standard timings
+	DISPLAY_DESCRIPTOR_SIZE       = 18  // 18 bytes display descriptor
+	DISPLAY_DESCRIPTOR_COUNT      = 4   // 4 display descriptors
+	EXTENSION_FLAG_SIZE           = 1   // 1 byte extension flag
+	CHECKSUM_SIZE                 = 1   // 1 byte checksum
+	EDID_SIZE                     = 128 // 128 bytes edid
+	EXTENDED_EDID_SIZE            = 256 // 256 bytes edid
 
-	CTA_EXT_TAG_SIZE = 1 // 1 byte CTA extension tag
-	CTA_EXT_REVISION_SIZE = 1 // 1 byte CTA extension revision
-	CTA_EXT_DTD_START_SIZE = 1 // 1 byte CTA extension DTD start
+	CTA_EXT_TAG_SIZE        = 1 // 1 byte CTA extension tag
+	CTA_EXT_REVISION_SIZE   = 1 // 1 byte CTA extension revision
+	CTA_EXT_DTD_START_SIZE  = 1 // 1 byte CTA extension DTD start
 	CTA_EXT_NR_OF_DTDS_SIZE = 1 // 1 byte CTA extension number of DTDs
 
-	ESTABLISHED_TIMINGS_720x400_70Hz = 0x80
-	ESTABLISHED_TIMINGS_720x400_88Hz = 0x40
-	ESTABLISHED_TIMINGS_640x480_60Hz = 0x20
-	ESTABLISHED_TIMINGS_640x480_67Hz = 0x10
-	ESTABLISHED_TIMINGS_640x480_72Hz = 0x08
-	ESTABLISHED_TIMINGS_640x480_75Hz = 0x04
-	ESTABLISHED_TIMINGS_800x600_56Hz = 0x02
-	ESTABLISHED_TIMINGS_800x600_60Hz = 0x01
-	ESTABLISHED_TIMINGS_800x600_72Hz = 0x80
-	ESTABLISHED_TIMINGS_800x600_75Hz = 0x40
-	ESTABLISHED_TIMINGS_832x624_75Hz = 0x20
-	ESTABLISHED_TIMINGS_1024x768_87Hz = 0x10
-	ESTABLISHED_TIMINGS_1024x768_60Hz = 0x08
-	ESTABLISHED_TIMINGS_1024x768_70Hz = 0x04
-	ESTABLISHED_TIMINGS_1024x768_75Hz = 0x02
-	ESTABLISHED_TIMINGS_1280x1024_75Hz = 0x01
-	ESTABLISHED_TIMINGS_1152x870_75Hz = 0x80
+	ESTABLISHED_TIMINGS_720x400_70Hz   = 0x80 // 720x400 @ 70Hz
+	ESTABLISHED_TIMINGS_720x400_88Hz   = 0x40 // 720x400 @ 88Hz
+	ESTABLISHED_TIMINGS_640x480_60Hz   = 0x20 // 640x480 @ 60Hz
+	ESTABLISHED_TIMINGS_640x480_67Hz   = 0x10 // 640x480 @ 67Hz
+	ESTABLISHED_TIMINGS_640x480_72Hz   = 0x08 // 640x480 @ 72Hz
+	ESTABLISHED_TIMINGS_640x480_75Hz   = 0x04 // 640x480 @ 75Hz
+	ESTABLISHED_TIMINGS_800x600_56Hz   = 0x02 // 800x600 @ 56Hz
+	ESTABLISHED_TIMINGS_800x600_60Hz   = 0x01 // 800x600 @ 60Hz
+	ESTABLISHED_TIMINGS_800x600_72Hz   = 0x80 // 800x600 @ 72Hz
+	ESTABLISHED_TIMINGS_800x600_75Hz   = 0x40 // 800x600 @ 75Hz
+	ESTABLISHED_TIMINGS_832x624_75Hz   = 0x20 // 832x624 @ 75Hz
+	ESTABLISHED_TIMINGS_1024x768_87Hz  = 0x10 // 1024x768 @ 87Hz
+	ESTABLISHED_TIMINGS_1024x768_60Hz  = 0x08 // 1024x768 @ 60Hz
+	ESTABLISHED_TIMINGS_1024x768_70Hz  = 0x04 // 1024x768 @ 70Hz
+	ESTABLISHED_TIMINGS_1024x768_75Hz  = 0x02 // 1024x768 @ 75Hz
+	ESTABLISHED_TIMINGS_1280x1024_75Hz = 0x01 // 1280x1024 @ 75Hz
+	ESTABLISHED_TIMINGS_1152x870_75Hz  = 0x80 // 1152x870 @ 75Hz
 
-	STD_TIMING_ASPECT_RATIO_16_10 = 0x00
-	STD_TIMING_ASPECT_RATIO_4_3 = 0x01
-	STD_TIMING_ASPECT_RATIO_5_4 = 0x02
-	STD_TIMING_ASPECT_RATIO_16_9 = 0x03
+	STD_TIMING_ASPECT_RATIO_16_10 = 0x00 // 16:10
+	STD_TIMING_ASPECT_RATIO_4_3   = 0x01 // 4:3
+	STD_TIMING_ASPECT_RATIO_5_4   = 0x02 // 5:4
+	STD_TIMING_ASPECT_RATIO_16_9  = 0x03 // 16:9
 
-	STD_TIMING_VERTICAL_FREQUENCY = 0x31
+	STD_TIMING_VERTICAL_FREQUENCY = 0x31 // 60Hz
 
-	BDP_DIGITAL_INPUT = 0x80
-	BDP_BIT_DEPTH = 0x70
-	BDP_VIDEO_INTERFACE = 0x0F
-	BDP_ANALOG_INPUT = 0x00
-	BDP_VIDEO_WHITE_AND_SYNC_LEVELS = 0x60
-	BDP_BLANK_TO_BLACK_SETUP = 0x10
-	BDP_SYNC_SIGNAL_LEVELS = 0x08
-	BDP_COMPOSITE_SYNC = 0x04
-	BDP_SYNC_ON_GREEN = 0x02
-	BDP_VSYNC_SERRATED = 0x01
+	BDP_DIGITAL_INPUT               = 0x80 // Digital input
+	BDP_BIT_DEPTH                   = 0x70 // Bit depth
+	BDP_VIDEO_INTERFACE             = 0x0F // Video interface
+	BDP_ANALOG_INPUT                = 0x00 // Analog input
+	BDP_VIDEO_WHITE_AND_SYNC_LEVELS = 0x60 // Video white and sync levels
+	BDP_BLANK_TO_BLACK_SETUP        = 0x10 // Blank to black setup
+	BDP_SYNC_SIGNAL_LEVELS          = 0x08 // Sync signal levels
+	BDP_COMPOSITE_SYNC              = 0x04 // Composite sync
+	BDP_SYNC_ON_GREEN               = 0x02 // Sync on green
+	BDP_VSYNC_SERRATED              = 0x01 // Vsync serrated
 
-	FD_INTERLACED = 0x80
-	FD_STEREO = 0x60
-	FD_DIGITAL_ANALOG_SYNC = 0x10
-	FD_ANALOG_SYNC = 0x08
-	FD_ANALOG_SERRATED_VSYNC = 0x04
-	FD_ANALOG_SYNC_ON_GREEN = 0x02
-	FD_DIGITAL_COMPOSITE_SYNC = 0x08
-	FD_DIGITAL_SERRATION = 0x04
-	FD_DIGITAL_VSYNC_POLARITY = 0x04
-	FD_DIGITAL_HSYNC_POLARITY = 0x02
-	FD_STEREO_MODE = 0x01
+	FD_INTERLACED             = 0x80 // Interlaced
+	FD_STEREO                 = 0x60 // Stereo
+	FD_DIGITAL_ANALOG_SYNC    = 0x10 // Digital/Analog sync
+	FD_ANALOG_SYNC            = 0x08 // Analog sync
+	FD_ANALOG_SERRATED_VSYNC  = 0x04 // Analog serrated vsync
+	FD_ANALOG_SYNC_ON_GREEN   = 0x02 // Analog sync on green
+	FD_DIGITAL_COMPOSITE_SYNC = 0x08 // Digital composite sync
+	FD_DIGITAL_SERRATION      = 0x04 // Digital serration
+	FD_DIGITAL_VSYNC_POLARITY = 0x04 // Digital VSync polarity
+	FD_DIGITAL_HSYNC_POLARITY = 0x02 // Digital HSync polarity
+	FD_STEREO_MODE            = 0x01 // Stereo mode
 
-	DTD_TYPE_MANUFACTURER_SPECIFIC = 0x0f
-	DTD_TYPE_MONITOR_SERIAL_NUMBER = 0xFF
-	DTD_TYPE_UNSPECIFIED = 0xFE
-	DTD_TYPE_RANGE_LIMITS = 0xFD
-	DTD_TYPE_MONITOR_NAME = 0xFC
-	DTD_TYPE_WHITE_POINT_DATA = 0xFB
-	DTD_TYPE_STANDARD_TIMING_IDENTIFICATION = 0xFA
-	DTD_TYPE_COLOR_POINT_DATA = 0xF9
-	DTD_TYPE_CVT_3_BYTE_CODE = 0xF8
-	DTD_TYPE_ADDITIONAL_STANDARD_TIMING = 0xF7
-	DTD_TYPE_DUMMY = 0x10
-
+	DTD_TYPE_MANUFACTURER_SPECIFIC          = 0x0F // Manufacturer specific
+	DTD_TYPE_MONITOR_SERIAL_NUMBER          = 0xFF // Monitor serial number
+	DTD_TYPE_UNSPECIFIED                    = 0xFE // Unspecified
+	DTD_TYPE_RANGE_LIMITS                   = 0xFD // Range limits
+	DTD_TYPE_MONITOR_NAME                   = 0xFC // Monitor name
+	DTD_TYPE_WHITE_POINT_DATA               = 0xFB // White point data
+	DTD_TYPE_STANDARD_TIMING_IDENTIFICATION = 0xFA // Standard timing identification
+	DTD_TYPE_COLOR_POINT_DATA               = 0xF9 // Color point data
+	DTD_TYPE_CVT_3_BYTE_CODE                = 0xF8 // CVT 3-byte code
+	DTD_TYPE_ADDITIONAL_STANDARD_TIMING     = 0xF7 // Additional standard timing
+	DTD_TYPE_DUMMY                          = 0x10 // Dummy
 )
-
 
 var (
 	FIXED_HEADER_PATTERN = []byte{0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00} // 8 bytes fixed edid header
 )
 
 type CTA_EXT_BLOCK struct {
-	extensionTag byte
-	revision byte
-	dtdStart byte
+	extensionTag byte // 1 byte CTA extension tag
+	revision     byte // 1 byte CTA extension revision
+	dtdStart     byte // 1 byte CTA extension DTD start
 }
 
 type DTD struct {
-	pixelClock [2]byte
-	horizontalActiveLSB byte
-	horizontalBlankingLSB byte
-	horizontalMSB byte
-	verticalActiveLSB byte
-	verticalBlankingLSB byte
-	verticalMSB byte
-	horizontalFrontPorchLSB byte
-	horizontalSyncPulseLSB byte
-	verticalFrontPorchSyncPulseLSB byte
-	horizontalVerticalMSB byte
-	horizontalImageSize byte
-	verticalImageSize byte
-	sizeMSB byte
-	horizontalBorder byte
-	verticalBorder byte
-	features byte
+	pixelClock                     [2]byte // 2 bytes pixel clock
+	horizontalActiveLSB            byte    // 1 byte horizontal active LSB
+	horizontalBlankingLSB          byte    // 1 byte horizontal blanking LSB
+	horizontalMSB                  byte    // 1 byte horizontal MSB
+	verticalActiveLSB              byte    // 1 byte vertical active LSB
+	verticalBlankingLSB            byte    // 1 byte vertical blanking LSB
+	verticalMSB                    byte    // 1 byte vertical MSB
+	horizontalFrontPorchLSB        byte    // 1 byte horizontal front porch LSB
+	horizontalSyncPulseLSB         byte    // 1 byte horizontal sync pulse LSB
+	verticalFrontPorchSyncPulseLSB byte    // 1 byte vertical front porch sync pulse LSB
+	horizontalVerticalMSB          byte    // 1 byte horizontal vertical MSB
+	horizontalImageSize            byte    // 1 byte horizontal image size
+	verticalImageSize              byte    // 1 byte vertical image size
+	sizeMSB                        byte    // 1 byte size MSB
+	horizontalBorder               byte    // 1 byte horizontal border
+	verticalBorder                 byte    // 1 byte vertical border
+	features                       byte    // 1 byte features
 }
 
-
 type EDID struct {
-	rawData [EXTENDED_EDID_SIZE]byte
-	fixedHeader [FIXED_HEADER_SIZE]byte
-	manufacturerId [MANUFACTURER_ID_SIZE]byte
-	productCode [PRODUCT_CODE_SIZE]byte
-	serialNumber [SERIAL_NUMBER_SIZE]byte
-	weekOfManufacture byte
-	yearOfManufacture byte
-	edidVersion byte
-	edidRevision byte
-	basicDisplayParameters [BASIC_DISPLAY_PARAMETERS_SIZE]byte
-	chromaticityCoordinates [CHROMATICITY_COORDINATES_SIZE]byte
-	establishedTimings [ESTABLISHED_TIMINGS_SIZE]byte
-	standardTimings [STANDARD_TIMINGS_COUNT][STANDARD_TIMINGS_SIZE]byte
-	displayDescriptor [DISPLAY_DESCRIPTOR_COUNT][DISPLAY_DESCRIPTOR_SIZE]byte
-	extensionFlag byte
-	checksum byte
+	rawData                 [EXTENDED_EDID_SIZE]byte                                // 256 bytes edid
+	fixedHeader             [FIXED_HEADER_SIZE]byte                                 // 8 bytes fixed edid header
+	manufacturerId          [MANUFACTURER_ID_SIZE]byte                              // 2 bytes manufacturer id
+	productCode             [PRODUCT_CODE_SIZE]byte                                 // 2 bytes product code
+	serialNumber            [SERIAL_NUMBER_SIZE]byte                                // 4 bytes serial number
+	weekOfManufacture       byte                                                    // 1 byte week of manufacture
+	yearOfManufacture       byte                                                    // 1 byte year of manufacture
+	edidVersion             byte                                                    // 1 byte edid version
+	edidRevision            byte                                                    // 1 byte edid revision
+	basicDisplayParameters  [BASIC_DISPLAY_PARAMETERS_SIZE]byte                     // 5 bytes basic display parameters
+	chromaticityCoordinates [CHROMATICITY_COORDINATES_SIZE]byte                     // 10 bytes chromaticity coordinates
+	establishedTimings      [ESTABLISHED_TIMINGS_SIZE]byte                          // 3 bytes established timings
+	standardTimings         [STANDARD_TIMINGS_COUNT][STANDARD_TIMINGS_SIZE]byte     // 8 standard timings
+	displayDescriptor       [DISPLAY_DESCRIPTOR_COUNT][DISPLAY_DESCRIPTOR_SIZE]byte // 4 display descriptors
+	extensionFlag           byte                                                    // 1 byte extension flag
+	checksum                byte                                                    // 1 byte checksum
 }
 
 func ReadEDID(data []byte) (EDID, error) {
 	var edid EDID
-	if len(data) != EDID_SIZE && len(data) != EXTENDED_EDID_SIZE{
+	if len(data) != EDID_SIZE && len(data) != EXTENDED_EDID_SIZE {
 		return edid, fmt.Errorf("Invalid EDID size: %d", len(data))
 	}
 	copy(edid.rawData[:], data)
@@ -176,7 +173,7 @@ func ReadEDID(data []byte) (EDID, error) {
 	offset += EDID_REVISION_SIZE
 	copy(edid.basicDisplayParameters[:], data[offset:offset+BASIC_DISPLAY_PARAMETERS_SIZE])
 	offset += BASIC_DISPLAY_PARAMETERS_SIZE
-	copy(edid.chromaticityCoordinates[:],data[offset:offset+CHROMATICITY_COORDINATES_SIZE])
+	copy(edid.chromaticityCoordinates[:], data[offset:offset+CHROMATICITY_COORDINATES_SIZE])
 	offset += CHROMATICITY_COORDINATES_SIZE
 	copy(edid.establishedTimings[:], data[offset:offset+ESTABLISHED_TIMINGS_SIZE])
 	offset += ESTABLISHED_TIMINGS_SIZE
@@ -190,7 +187,6 @@ func ReadEDID(data []byte) (EDID, error) {
 		copy(edid.displayDescriptor[i][:], data[offset:offset+DISPLAY_DESCRIPTOR_SIZE])
 		offset += DISPLAY_DESCRIPTOR_SIZE
 	}
-
 
 	edid.extensionFlag = data[offset]
 	offset += EXTENSION_FLAG_SIZE
@@ -292,15 +288,15 @@ func parseBDP(bdp []byte) {
 	}
 	fmt.Println("\tMaximum Image Size: ", bdp[1], "cm x ", bdp[2], "cm")
 	displayGamma := bdp[3] + 100
-	fmt.Println("\tDisplay Gamma: ", float32(displayGamma) / 100.0)
+	fmt.Println("\tDisplay Gamma: ", float32(displayGamma)/100.0)
 	supportedFeatures := bdp[4]
-	if supportedFeatures & 0x80 != 0 {
+	if supportedFeatures&0x80 != 0 {
 		fmt.Println("\tDPMS standby supported")
 	}
-	if supportedFeatures & 0x40 != 0 {
+	if supportedFeatures&0x40 != 0 {
 		fmt.Println("\tDPMS suspend supported")
 	}
-	if supportedFeatures & 0x20 != 0 {
+	if supportedFeatures&0x20 != 0 {
 		fmt.Println("\tDPMS active-off supported")
 	}
 
@@ -331,14 +327,14 @@ func parseBDP(bdp []byte) {
 }
 
 func parseChromaticityCoordinates(cc []byte) {
-	redX := float64(((int((cc[0] & 0xc0) >> 6)) + int((cc[2]))<< 2)) / 1024.0
-	redY := float64(((int((cc[0] & 0x30) >> 4)) + int((cc[3]))<< 2)) / 1024.0
-	greenX := float64(((int((cc[0] & 0x0c) >> 2)) + int((cc[4]))<< 2)) / 1024.0
-	greenY := float64(((int((cc[0] & 0x03))) + int((cc[5]))<< 2)) / 1024.0
-	blueX := float64(((int((cc[1] & 0xc0) >> 6)) + int((cc[6]))<< 2)) / 1024.0
-	blueY := float64(((int((cc[1] & 0x30) >> 4)) + int((cc[7]))<< 2)) / 1024.0
-	whiteX := float64(((int((cc[1] & 0x0c) >> 2)) + int((cc[8]))<< 2)) / 1024.0
-	whiteY := float64(((int((cc[1] & 0x03))) + int((cc[9]))<< 2)) / 1024.0
+	redX := float64(((int((cc[0] & 0xc0) >> 6)) + int((cc[2]))<<2)) / 1024.0
+	redY := float64(((int((cc[0] & 0x30) >> 4)) + int((cc[3]))<<2)) / 1024.0
+	greenX := float64(((int((cc[0] & 0x0c) >> 2)) + int((cc[4]))<<2)) / 1024.0
+	greenY := float64(((int((cc[0] & 0x03))) + int((cc[5]))<<2)) / 1024.0
+	blueX := float64(((int((cc[1] & 0xc0) >> 6)) + int((cc[6]))<<2)) / 1024.0
+	blueY := float64(((int((cc[1] & 0x30) >> 4)) + int((cc[7]))<<2)) / 1024.0
+	whiteX := float64(((int((cc[1] & 0x0c) >> 2)) + int((cc[8]))<<2)) / 1024.0
+	whiteY := float64(((int((cc[1] & 0x03))) + int((cc[9]))<<2)) / 1024.0
 	fmt.Println("\tRed X: ", redX)
 	fmt.Println("\tRed Y: ", redY)
 	fmt.Println("\tGreen X: ", greenX)
@@ -350,55 +346,55 @@ func parseChromaticityCoordinates(cc []byte) {
 }
 
 func parseEstablishedTimings(et []byte) {
-	if et[0] & ESTABLISHED_TIMINGS_720x400_70Hz != 0 {
+	if et[0]&ESTABLISHED_TIMINGS_720x400_70Hz != 0 {
 		fmt.Println("\t720x400 @ 70Hz")
 	}
-	if et[0] & ESTABLISHED_TIMINGS_720x400_88Hz != 0 {
+	if et[0]&ESTABLISHED_TIMINGS_720x400_88Hz != 0 {
 		fmt.Println("\t720x400 @ 88Hz")
 	}
-	if et[0] & ESTABLISHED_TIMINGS_640x480_60Hz != 0 {
+	if et[0]&ESTABLISHED_TIMINGS_640x480_60Hz != 0 {
 		fmt.Println("\t640x480 @ 60Hz")
 	}
-	if et[0] & ESTABLISHED_TIMINGS_640x480_67Hz != 0 {
+	if et[0]&ESTABLISHED_TIMINGS_640x480_67Hz != 0 {
 		fmt.Println("\t640x480 @ 67Hz")
 	}
-	if et[0] & ESTABLISHED_TIMINGS_640x480_72Hz != 0 {
+	if et[0]&ESTABLISHED_TIMINGS_640x480_72Hz != 0 {
 		fmt.Println("\t640x480 @ 72Hz")
 	}
-	if et[0] & ESTABLISHED_TIMINGS_640x480_75Hz != 0 {
+	if et[0]&ESTABLISHED_TIMINGS_640x480_75Hz != 0 {
 		fmt.Println("\t640x480 @ 75Hz")
 	}
-	if et[0] & ESTABLISHED_TIMINGS_800x600_56Hz != 0 {
+	if et[0]&ESTABLISHED_TIMINGS_800x600_56Hz != 0 {
 		fmt.Println("\t800x600 @ 56Hz")
 	}
-	if et[0] & ESTABLISHED_TIMINGS_800x600_60Hz != 0 {
+	if et[0]&ESTABLISHED_TIMINGS_800x600_60Hz != 0 {
 		fmt.Println("\t800x600 @ 60Hz")
 	}
-	if et[1] & ESTABLISHED_TIMINGS_800x600_72Hz != 0 {
+	if et[1]&ESTABLISHED_TIMINGS_800x600_72Hz != 0 {
 		fmt.Println("\t800x600 @ 72Hz")
 	}
-	if et[1] & ESTABLISHED_TIMINGS_800x600_75Hz != 0 {
+	if et[1]&ESTABLISHED_TIMINGS_800x600_75Hz != 0 {
 		fmt.Println("\t800x600 @ 75Hz")
 	}
-	if et[1] & ESTABLISHED_TIMINGS_832x624_75Hz != 0 {
+	if et[1]&ESTABLISHED_TIMINGS_832x624_75Hz != 0 {
 		fmt.Println("\t832x624 @ 75Hz")
 	}
-	if et[1] & ESTABLISHED_TIMINGS_1024x768_87Hz != 0 {
+	if et[1]&ESTABLISHED_TIMINGS_1024x768_87Hz != 0 {
 		fmt.Println("\t1024x768 @ 87Hz")
 	}
-	if et[1] & ESTABLISHED_TIMINGS_1024x768_60Hz != 0 {
+	if et[1]&ESTABLISHED_TIMINGS_1024x768_60Hz != 0 {
 		fmt.Println("\t1024x768 @ 60Hz")
 	}
-	if et[1] & ESTABLISHED_TIMINGS_1024x768_70Hz != 0 {
+	if et[1]&ESTABLISHED_TIMINGS_1024x768_70Hz != 0 {
 		fmt.Println("\t1024x768 @ 70Hz")
 	}
-	if et[1] & ESTABLISHED_TIMINGS_1024x768_75Hz != 0 {
+	if et[1]&ESTABLISHED_TIMINGS_1024x768_75Hz != 0 {
 		fmt.Println("\t1024x768 @ 75Hz")
 	}
-	if et[1] & ESTABLISHED_TIMINGS_1280x1024_75Hz != 0 {
+	if et[1]&ESTABLISHED_TIMINGS_1280x1024_75Hz != 0 {
 		fmt.Println("\t1280x1024 @ 75Hz")
 	}
-	if et[2] & ESTABLISHED_TIMINGS_1152x870_75Hz != 0 {
+	if et[2]&ESTABLISHED_TIMINGS_1152x870_75Hz != 0 {
 		fmt.Println("\t1152x870 @ 75Hz")
 	}
 }
@@ -455,7 +451,7 @@ func parseDisplayDescriptorFeatures(fd byte) {
 	} else {
 		fmt.Println("\t\t\tSignal type: Progressive")
 	}
-	stereoMode := (fd & FD_STEREO) >> 4 | (fd & FD_STEREO_MODE)
+	stereoMode := (fd&FD_STEREO)>>4 | (fd & FD_STEREO_MODE)
 	switch stereoMode {
 	case 0x00:
 	case 0x01:
@@ -551,17 +547,17 @@ func parseDisplayTimingDescriptor(dd [DISPLAY_DESCRIPTOR_SIZE]byte) {
 	dtd.horizontalBorder = dd[15]
 	dtd.verticalBorder = dd[16]
 	dtd.features = dd[17]
-	fmt.Printf("\t\tPixel Clock: %f MHz\n", float64(binary.LittleEndian.Uint16([]byte(dtd.pixelClock[:])))/ 100.0)
-	horizontalActive := (int(dtd.horizontalMSB & 0xf0 ) << 4) | int(dtd.horizontalActiveLSB)
-	blanking := (int(dtd.horizontalMSB & 0x0f) << 8) | int(dtd.horizontalBlankingLSB)
-	verticalActive := (int(dtd.verticalMSB & 0xf0) << 4) | int(dtd.verticalActiveLSB)
-	verticalBlanking := (int(dtd.verticalMSB & 0x0f) << 8) | int(dtd.verticalBlankingLSB)
-	horizontalFrontPorch := (int(dtd.horizontalVerticalMSB & 0xC0) << 2) | (int(dtd.horizontalFrontPorchLSB))
-	horizontalSyncPulse := (int(dtd.horizontalVerticalMSB & 0x30) << 4) | (int(dtd.horizontalSyncPulseLSB))
-	verticalFrontPorch := (int(dtd.horizontalVerticalMSB & 0x0c) << 2) |(int(dtd.verticalFrontPorchSyncPulseLSB & 0xF0) >> 4)
-	verticalSyncPulse :=  (int(dtd.horizontalVerticalMSB & 0x03) << 4) | (int(dtd.verticalFrontPorchSyncPulseLSB & 0x0F))
-	horizontalImageSize := (int(dtd.sizeMSB & 0xF0) << 4) | (int(dtd.horizontalImageSize))
-	verticalImageSize := (int(dtd.sizeMSB & 0x0F) << 8) | (int(dtd.verticalImageSize))
+	fmt.Printf("\t\tPixel Clock: %f MHz\n", float64(binary.LittleEndian.Uint16([]byte(dtd.pixelClock[:])))/100.0)
+	horizontalActive := (int(dtd.horizontalMSB&0xf0) << 4) | int(dtd.horizontalActiveLSB)
+	blanking := (int(dtd.horizontalMSB&0x0f) << 8) | int(dtd.horizontalBlankingLSB)
+	verticalActive := (int(dtd.verticalMSB&0xf0) << 4) | int(dtd.verticalActiveLSB)
+	verticalBlanking := (int(dtd.verticalMSB&0x0f) << 8) | int(dtd.verticalBlankingLSB)
+	horizontalFrontPorch := (int(dtd.horizontalVerticalMSB&0xC0) << 2) | (int(dtd.horizontalFrontPorchLSB))
+	horizontalSyncPulse := (int(dtd.horizontalVerticalMSB&0x30) << 4) | (int(dtd.horizontalSyncPulseLSB))
+	verticalFrontPorch := (int(dtd.horizontalVerticalMSB&0x0c) << 2) | (int(dtd.verticalFrontPorchSyncPulseLSB&0xF0) >> 4)
+	verticalSyncPulse := (int(dtd.horizontalVerticalMSB&0x03) << 4) | (int(dtd.verticalFrontPorchSyncPulseLSB & 0x0F))
+	horizontalImageSize := (int(dtd.sizeMSB&0xF0) << 4) | (int(dtd.horizontalImageSize))
+	verticalImageSize := (int(dtd.sizeMSB&0x0F) << 8) | (int(dtd.verticalImageSize))
 
 	fmt.Printf("\t\tHorizontal Active: %d\n", horizontalActive)
 	fmt.Printf("\t\tHorizontal Blanking: %d\n", blanking)
@@ -616,16 +612,16 @@ func parseDisplayDescriptor(dd [DISPLAY_DESCRIPTOR_COUNT][DISPLAY_DESCRIPTOR_SIZ
 			descriptorType := dd[i][3]
 			switch descriptorType {
 			case DTD_TYPE_MANUFACTURER_SPECIFIC:
-				fmt.Println("\tDisplay Descriptor ", i, ": Manufacturer specific: ", strings.Replace(string(dd[i][5:]), "\n","",-1))
+				fmt.Println("\tDisplay Descriptor ", i, ": Manufacturer specific: ", strings.Replace(string(dd[i][5:]), "\n", "", -1))
 			case DTD_TYPE_MONITOR_SERIAL_NUMBER:
-				fmt.Println("\tDisplay Descriptor ", i, ": Monitor serial number: ", strings.Replace(string(dd[i][5:]), "\n","",-1))
+				fmt.Println("\tDisplay Descriptor ", i, ": Monitor serial number: ", strings.Replace(string(dd[i][5:]), "\n", "", -1))
 			case DTD_TYPE_UNSPECIFIED:
 				fmt.Println("\tDisplay Descriptor ", i, ": Unspecified")
 			case DTD_TYPE_RANGE_LIMITS:
 				fmt.Println("\tDisplay Descriptor ", i, ": Range limits")
 				parseDisplayRangeLimitDescriptor(dd[i])
 			case DTD_TYPE_MONITOR_NAME:
-				fmt.Println("\tDisplay Descriptor ", i, ": Monitor name: ", strings.Replace(string(dd[i][5:]), "\n","",-1))
+				fmt.Println("\tDisplay Descriptor ", i, ": Monitor name: ", strings.Replace(string(dd[i][5:]), "\n", "", -1))
 			case DTD_TYPE_WHITE_POINT_DATA:
 				fmt.Println("\tDisplay Descriptor ", i, ": White point data")
 			case DTD_TYPE_STANDARD_TIMING_IDENTIFICATION:
@@ -650,7 +646,7 @@ func (edid EDID) Checksum() bool {
 	for _, b := range edid.rawData[:EDID_SIZE-1] {
 		sum += b
 	}
-	return (int(sum) + int(edid.checksum) == 256)
+	return (int(sum)+int(edid.checksum) == 256)
 }
 
 func (edid EDID) Parse() error {
@@ -663,7 +659,7 @@ func (edid EDID) Parse() error {
 	fmt.Printf("Product Code: %d\n", binary.LittleEndian.Uint16([]byte(edid.productCode[:])))
 	fmt.Printf("Serial Number: %d\n", binary.LittleEndian.Uint32([]byte(edid.serialNumber[:])))
 	fmt.Printf("Week of Manufacture: %d\n", edid.weekOfManufacture)
-	fmt.Printf("Year of Manufacture: %d\n", int(edid.yearOfManufacture) + 1990)
+	fmt.Printf("Year of Manufacture: %d\n", int(edid.yearOfManufacture)+1990)
 	fmt.Printf("EDID Version: %d.%d\n", edid.edidVersion, edid.edidRevision)
 
 	fmt.Printf("Basic Display Parameters:\n")
