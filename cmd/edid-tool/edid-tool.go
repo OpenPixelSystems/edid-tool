@@ -2,24 +2,31 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"flag"
+	"io"
 	"os"
-	"unsafe"
 
 	"github.com/openpixelsystems/edid-tool/edid"
 )
 
 func main() {
-	fmt.Println("Hello, World!")
-	fmt.Println(unsafe.Sizeof(edid.EDID{}))
+	inFilePtr := flag.String("in", "", "Input file")
+	//outFilePtr := flag.String("out", "", "Output file")
 
-	f, err := os.Open("/home/bravl/tmp/edid.hex")
+	flag.Parse()
+
+	if *inFilePtr == "" {
+		fmt.Println("Input file is required")
+		os.Exit(1)
+	}
+
+	f, err := os.Open(*inFilePtr)
 	if err != nil {
 		fmt.Println(err)
 	}
 	defer f.Close()
 
-	data, err := ioutil.ReadAll(f)
+	data, err := io.ReadAll(f)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -28,6 +35,6 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(edidObj)
+
 	edidObj.Parse()
 }
