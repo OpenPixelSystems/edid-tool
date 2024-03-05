@@ -178,9 +178,26 @@ func parseVTBType1(vtb []byte) int {
 	return 3 + int(numberOfPayloadBytes)
 }
 
+func (edid *EDID) DisplayIDCheckSum() int {
+	var sum byte
+	for i := 1; i < CTA_SIZE-3; i++ {
+		sum += edid.ctaData[i]
+	}
+	return 256 - int(sum)
+}
+
+func (edid *EDID) CTACheckSum() int {
+	var sum byte
+	for i := 0; i < CTA_SIZE-1; i++ {
+		sum += edid.ctaData[i]
+	}
+	return 256 - int(sum)
+}
+
 func (edid *EDID) ParseCTA() error {
 	fmt.Println("Parsing CTA extension")
 
+	fmt.Println("Parsing DisplayID extension")
 	blockType := edid.ctaData[0] >> 4
 	totalLength := edid.ctaData[0] & 0x0f
 	fmt.Printf("Block type: 0x%02x\n", blockType)
@@ -233,5 +250,9 @@ func (edid *EDID) ParseCTA() error {
 			fmt.Println("Unknown block type")
 		}
 	}
+	displayIDCheckSum := edid.ctaData[CTA_SIZE-2]
+	CTAExtCheckSum := edid.ctaData[CTA_SIZE-1]
+	fmt.Printf("DisplayID checksum: 0x%02x is: %t\n", displayIDCheckSum, edid.DisplayIDCheckSum() == int(displayIDCheckSum))
+	fmt.Printf("CTA extension checksum: 0x%02x is valid: %t\n", CTAExtCheckSum, edid.CTACheckSum() == int(CTAExtCheckSum))
 	return nil
 }
