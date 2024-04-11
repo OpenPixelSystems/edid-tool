@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"flag"
+	"fmt"
 	"io"
 	"os"
 
@@ -11,7 +11,9 @@ import (
 
 func main() {
 	inFilePtr := flag.String("in", "", "Input file")
-	//outFilePtr := flag.String("out", "", "Output file")
+	outFilePtr := flag.String("out", "", "Output file")
+	displayNamePtr := flag.String("name", "", "Display name")
+	serialNumberPtr := flag.Uint("serial", 0, "Serial number")
 
 	flag.Parse()
 
@@ -36,5 +38,25 @@ func main() {
 		fmt.Println(err)
 	}
 
-	edidObj.Parse()
+	warnings, _ := edidObj.Parse()
+	fmt.Printf("\nParsing finished with %d warnings:\n", len(warnings))
+	for _, warning := range warnings {
+		fmt.Println("\t", warning)
+	}
+
+	//edidObj.ModifyManufacturerId([3]byte{'O', 'P', 'S'})
+	nameDescriptor := edid.GenerateMonitorNameDescriptor(*displayNamePtr)
+	if *displayNamePtr != "" {
+		edidObj.ModifyDisplayDescriptor(2, nameDescriptor)
+	}
+
+	if *serialNumberPtr != 0 {
+		edidObj.ModifySerialNumber(uint32(*serialNumberPtr))
+	}
+
+	//edidObj.Parse()
+
+	edidData := edid.GenerateEDID(&edidObj)
+	f, err = os.Create(*outFilePtr)
+	f.Write(edidData)
 }

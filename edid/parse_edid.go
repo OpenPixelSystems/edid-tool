@@ -469,7 +469,8 @@ func (edid EDID) Checksum() bool {
 	return (int(sum)+int(edid.checksum) == 256)
 }
 
-func (edid EDID) Parse() error {
+func (edid EDID) Parse() ([]string, error) {
+	warnings := make([]string, 0)
 	var manId [3]byte
 	manId[0] = manIdByteToChar((edid.manufacturerId[0] >> 2) & 0x1F)
 	manId[1] = manIdByteToChar(((edid.manufacturerId[0] & 0x3) << 3) | ((edid.manufacturerId[1] & 0xE0) >> 5))
@@ -501,6 +502,6 @@ func (edid EDID) Parse() error {
 	fmt.Printf("Checksum: 0x%02X\n", edid.checksum)
 	fmt.Printf("Checksum Valid: %t\n", edid.Checksum())
 
-	edid.ParseCTA()
-	return nil
+	edid.ParseCTA(&warnings)
+	return warnings, nil
 }

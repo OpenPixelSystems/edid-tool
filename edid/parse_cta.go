@@ -194,7 +194,7 @@ func (edid *EDID) CTACheckSum() int {
 	return 256 - int(sum)
 }
 
-func (edid *EDID) ParseCTA() error {
+func (edid *EDID) ParseCTA(warnings *[]string) error {
 	fmt.Println("Parsing CTA extension")
 
 	fmt.Println("Parsing DisplayID extension")
@@ -221,6 +221,9 @@ func (edid *EDID) ParseCTA() error {
 
 	dpidRev := edid.ctaData[1]
 	fmt.Printf("DisplayID revision: 0x%02x\n", dpidRev)
+	if dpidRev != 0x13 && dpidRev != 0x20 {
+		*warnings = append(*warnings, fmt.Sprintf("DisplayID revision 0x%02x is invalid or unsupported", dpidRev))
+	}
 	dpidVariableLength := edid.ctaData[2]
 	fmt.Printf("DisplayID variable length: 0x%02x\n", dpidVariableLength)
 	primaryUseCase := edid.ctaData[3]
@@ -235,11 +238,15 @@ func (edid *EDID) ParseCTA() error {
 		fmt.Printf("Block type tag @ 0x%02x: 0x%02x\n", offset, blockTypeTag)
 		switch blockTypeTag {
 		case CTA_BLOCK_TILED_DISPLAY, CTA_BLOCK_TILED_DISPLAY_LEGACY:
+			if blockTypeTag == CTA_BLOCK_TILED_DISPLAY_LEGACY {
+				*warnings = append(*warnings, "Tiled display block (0x12) is deprecated and superseded by Tiled display block (0x28)")
+			}
 			displayData := edid.ctaData[offset : offset+CTA_BLOCK_TILED_SIZE]
 			payloadSize := parseTiledDisplayTopology(displayData)
 			offset += payloadSize
 		case CTA_BLOCK_VTB_TYPE_1:
 			fmt.Println("VTB type 1")
+			*warnings = append(*warnings, "VTB Type 1 (0x03) is deprecated and superseded by VTB Type 7 (0x22)")
 			vtdData := edid.ctaData[offset:]
 			payloadSize := parseVTBType1(vtdData)
 			offset += payloadSize
