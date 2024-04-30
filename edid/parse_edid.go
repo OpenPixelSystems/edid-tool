@@ -502,6 +502,6 @@ func (edid EDID) Parse() ([]string, error) {
 	fmt.Printf("Checksum: 0x%02X\n", edid.checksum)
 	fmt.Printf("Checksum Valid: %t\n", edid.Checksum())
 
-	edid.ParseCTA(&warnings)
+	edid.cta, _ = edid.ParseCTA(&warnings)
 	return warnings, nil
 }

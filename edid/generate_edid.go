@@ -67,5 +67,6 @@ func GenerateEDID(reference *EDID) []byte {
 	}
 	data = append(data, reference.extensionFlag)
 	data = append(data, generateChecksum(data))
+	data = append(data, reference.ctaData[:]...)
 	return data
 }

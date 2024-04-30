@@ -24,6 +24,7 @@ type VTBType1 struct {
 	revision            byte   // 1 byte revision
 	numberOfPayloadByte byte   // 1 byte number of payload bytes
 	vtb                 []byte // variable length video timing block
+	vtbBlocks           []VTBDescriptor
 }
 
 type VTBDescriptor struct {
@@ -51,6 +52,7 @@ type VTBDescriptor struct {
 
 type EDID struct {
 	edidData                [EDID_SIZE]byte                                         // 128 bytes edid
+	cta                     CTAExt                                                  // 128 bytes CTA extension
 	ctaData                 [CTA_SIZE]byte                                          // 1 byte CTA extension tag
 	rawData                 [EXTENDED_EDID_SIZE]byte                                // 256 bytes edid
 	fixedHeader             [FIXED_HEADER_SIZE]byte                                 // 8 bytes fixed edid header
@@ -68,4 +70,16 @@ type EDID struct {
 	displayDescriptor       [DISPLAY_DESCRIPTOR_COUNT][DISPLAY_DESCRIPTOR_SIZE]byte // 4 display descriptors
 	extensionFlag           byte                                                    // 1 byte extension flag
 	checksum                byte                                                    // 1 byte checksum
+}
+
+type CTAExt struct {
+	preamble       byte
+	revision       byte
+	variableLength byte
+	primaryUseCase byte
+	extensionCount byte
+	blocks         [][]byte
+	padding        []byte
+	dpIDChecksum   byte
+	ctaExtChecksum byte
 }

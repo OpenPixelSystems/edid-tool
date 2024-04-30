@@ -3,7 +3,24 @@ package edid
 import (
 	"encoding/binary"
 	"fmt"
+	"log"
 )
+
+func (cta *CTAExt) ToBytes() []byte {
+	var data []byte
+	data = append(data, cta.preamble)
+	data = append(data, cta.revision)
+	data = append(data, cta.variableLength)
+	data = append(data, cta.primaryUseCase)
+	data = append(data, cta.extensionCount)
+	for _, block := range cta.blocks {
+		data = append(data, block...)
+	}
+	data = append(data, cta.padding...)
+	data = append(data, cta.dpIDChecksum)
+	data = append(data, cta.ctaExtChecksum)
+	return data
+}
 
 func parseTiledDisplayTopology(dd []byte) int {
 	fmt.Println("Parsing tiled display topology")
@@ -96,13 +113,17 @@ func parseTiledDisplayTopology(dd []byte) int {
 	return 3 + int(numberOfPayloadBytes)
 }
 
-func parseVTBType1(vtb []byte) int {
+func parseVTBType1(vtb []byte) (VTBType1, int) {
+	var vtbBlock VTBType1
 	fmt.Println("Parsing VTB type 1")
 	revision := vtb[1]
 	fmt.Printf("\tRevision: 0x%02x\n", revision)
 	numberOfPayloadBytes := vtb[2]
 	fmt.Printf("\tNumber of payload bytes: %d\n", numberOfPayloadBytes)
 	fmt.Printf("\tNumber of video timing blocks: %d\n", numberOfPayloadBytes/CTA_VTB_TYPE_1_DESCRIPTOR_SIZE)
+
+	vtbBlock.revision = revision
+	vtbBlock.numberOfPayloadByte = numberOfPayloadBytes
 
 	offset := 3
 	for i := 0; i < int(numberOfPayloadBytes/CTA_VTB_TYPE_1_DESCRIPTOR_SIZE); i++ {
@@ -172,10 +193,12 @@ func parseVTBType1(vtb []byte) int {
 		fmt.Printf("\tva: %d, vbl: %d, vfp: %d, vbp; %d, vsync: %d, Vpol %s\n", vActive, vBlanking, vFrontPorch, vBackPorch, vSyncWidth, vSyncPolStr)
 		fmt.Printf("\tTotal: %d x %d, refresh rate: %fHz\n", htotal, vtotal, refRate)
 
+		vtbBlock.vtbBlocks = append(vtbBlock.vtbBlocks, vtd)
+
 		offset += CTA_VTB_TYPE_1_DESCRIPTOR_SIZE
 	}
 
-	return 3 + int(numberOfPayloadBytes)
+	return vtbBlock, 3 + int(numberOfPayloadBytes)
 }
 
 func (edid *EDID) DisplayIDCheckSum() int {
@@ -194,9 +217,15 @@ func (edid *EDID) CTACheckSum() int {
 	return 256 - int(sum)
 }
 
-func (edid *EDID) ParseCTA(warnings *[]string) error {
-	fmt.Println("Parsing CTA extension")
+func (edid *EDID) ParseCTA(warnings *[]string) (CTAExt, error) {
+	cta := CTAExt{}
+	cta.preamble = edid.ctaData[0]
+	cta.revision = edid.ctaData[1]
+	cta.variableLength = edid.ctaData[2]
+	cta.primaryUseCase = edid.ctaData[3]
+	cta.extensionCount = edid.ctaData[4]
 
+	fmt.Println("Parsing CTA extension")
 	fmt.Println("Parsing DisplayID extension")
 	blockType := edid.ctaData[0] >> 4
 	totalLength := edid.ctaData[0] & 0x0f
@@ -242,13 +271,16 @@ func (edid *EDID) ParseCTA(warnings *[]string) error {
 				*warnings = append(*warnings, "Tiled display block (0x12) is deprecated and superseded by Tiled display block (0x28)")
 			}
 			displayData := edid.ctaData[offset : offset+CTA_BLOCK_TILED_SIZE]
+			cta.blocks = append(cta.blocks, displayData)
 			payloadSize := parseTiledDisplayTopology(displayData)
 			offset += payloadSize
 		case CTA_BLOCK_VTB_TYPE_1:
 			fmt.Println("VTB type 1")
 			*warnings = append(*warnings, "VTB Type 1 (0x03) is deprecated and superseded by VTB Type 7 (0x22)")
 			vtdData := edid.ctaData[offset:]
-			payloadSize := parseVTBType1(vtdData)
+			block, payloadSize := parseVTBType1(vtdData)
+			log.Print("VTB block: ", block)
+			cta.blocks = append(cta.blocks, edid.ctaData[offset:payloadSize+offset])
 			offset += payloadSize
 		case 0x00:
 			fmt.Println("End of CTA extension")
@@ -261,5 +293,14 @@ func (edid *EDID) ParseCTA(warnings *[]string) error {
 	CTAExtCheckSum := edid.ctaData[CTA_SIZE-1]
 	fmt.Printf("DisplayID checksum: 0x%02x is: %t\n", displayIDCheckSum, edid.DisplayIDCheckSum() == int(displayIDCheckSum))
 	fmt.Printf("CTA extension checksum: 0x%02x is valid: %t\n", CTAExtCheckSum, edid.CTACheckSum() == int(CTAExtCheckSum))
-	return nil
+
+	cta.dpIDChecksum = displayIDCheckSum
+	cta.ctaExtChecksum = CTAExtCheckSum
+
+	paddingLen := CTA_SIZE - len(cta.ToBytes())
+	cta.padding = make([]byte, paddingLen)
+
+	log.Print("length: ", len(cta.ToBytes()))
+	log.Print(cta.ToBytes())
+	return cta, nil
 }
