@@ -2,7 +2,13 @@ package blocks
 
 import (
 	"fmt"
+
+	"github.com/openpixelsystems/edid-tool/interfaces"
 )
+
+func (dtd *DisplayTimingDescriptor) Type() interfaces.BlockType {
+	return BLOCK_TYPE_DISPLAY_DESCRIPTOR
+}
 
 func (dtd *DisplayTimingDescriptor) Print() {
 	fmt.Println("Display timing descriptor")

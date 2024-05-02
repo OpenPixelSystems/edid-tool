@@ -2,7 +2,13 @@ package blocks
 
 import (
 	"fmt"
+
+	"github.com/openpixelsystems/edid-tool/interfaces"
 )
+
+func (cc *ChromaticityCoordinates) Type() interfaces.BlockType {
+	return BLOCK_TYPE_CHROMATICITY_COORDINATES
+}
 
 func (cc *ChromaticityCoordinates) Print() {
 	fmt.Println("Fixed Header")

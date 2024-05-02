@@ -3,7 +3,13 @@ package blocks
 import (
 	"encoding/binary"
 	"fmt"
+
+	"github.com/openpixelsystems/edid-tool/interfaces"
 )
+
+func (fh *FixedHeader) Type() interfaces.BlockType {
+	return BLOCK_TYPE_FIXED_HEADER
+}
 
 func (fh *FixedHeader) Print() {
 	fmt.Println("Fixed Header")

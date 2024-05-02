@@ -2,7 +2,13 @@ package blocks
 
 import (
 	"fmt"
+
+	"github.com/openpixelsystems/edid-tool/interfaces"
 )
+
+func (bd *BasicDisplayParameters) Type() interfaces.BlockType {
+	return BLOCK_TYPE_BASIC_DISPLAY_PARAMETERS
+}
 
 func (bd *BasicDisplayParameters) Print() {
 	fmt.Println("Basic Display Parameters")

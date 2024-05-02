@@ -2,7 +2,13 @@ package blocks
 
 import (
 	"fmt"
+
+	"github.com/openpixelsystems/edid-tool/interfaces"
 )
+
+func (*EstablishedTimings) Type() interfaces.BlockType {
+	return BLOCK_TYPE_ESTABLISHED_TIMINGS
+}
 
 func (et *EstablishedTimings) Print() {
 	fmt.Println("Established Timings")

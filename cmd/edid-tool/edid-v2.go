@@ -32,6 +32,9 @@ func main() {
 	offset := 0
 
 	edid := blocks.EDIDV2{}
+	copy(edid.Raw[:], data[:])
+	copy(edid.RawEDID[:], data[:blocks.EDID_SIZE])
+	copy(edid.RawCTA[:], data[blocks.EDID_SIZE:blocks.EXTENDED_EDID_SIZE])
 
 	// parse the fixed header
 	fh := blocks.FixedHeader{}
@@ -69,8 +72,16 @@ func main() {
 	offset += nOffset
 	edid.Blocks = append(edid.Blocks, &dt)
 
+	// parse the extension and checksum
+	ec := blocks.ExtensionAndChecksum{}
+	nOffset, _ = ec.FromBytes(data[offset:])
+	offset += nOffset
+	edid.Blocks = append(edid.Blocks, &ec)
+
+	crcValid := edid.ChecksumValid()
+
 	for _, block := range edid.Blocks {
 		block.Print()
 	}
-
+	fmt.Println("Checksum valid: ", crcValid)
 }

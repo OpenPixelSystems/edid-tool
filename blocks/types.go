@@ -3,9 +3,9 @@ package blocks
 import "github.com/openpixelsystems/edid-tool/interfaces"
 
 type EDIDV2 struct {
-	raw     [EXTENDED_EDID_SIZE]byte
-	rawEDID [EDID_SIZE]byte
-	rawCTA  [CTA_SIZE]byte
+	Raw     [EXTENDED_EDID_SIZE]byte
+	RawEDID [EDID_SIZE]byte
+	RawCTA  [CTA_SIZE]byte
 	Blocks  []interfaces.EDIDBlock
 }
 
@@ -92,4 +92,10 @@ type DetailedTimingDescriptor struct {
 type DisplayTimingDescriptor struct {
 	Descriptors []interfaces.DisplayDescriptor
 	Raw         []byte
+}
+
+type ExtensionAndChecksum struct {
+	Extensions byte
+	Checksum   byte
+	Raw        []byte
 }
