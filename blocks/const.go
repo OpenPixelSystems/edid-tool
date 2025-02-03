@@ -101,18 +101,6 @@ const (
 	FD_DIGITAL_HSYNC_POLARITY = 0x02 // Digital HSync polarity
 	FD_STEREO_MODE            = 0x01 // Stereo mode
 
-	DTD_TYPE_MANUFACTURER_SPECIFIC          = 0x0F // Manufacturer specific
-	DTD_TYPE_MONITOR_SERIAL_NUMBER          = 0xFF // Monitor serial number
-	DTD_TYPE_UNSPECIFIED                    = 0xFE // Unspecified
-	DTD_TYPE_RANGE_LIMITS                   = 0xFD // Range limits
-	DTD_TYPE_MONITOR_NAME                   = 0xFC // Monitor name
-	DTD_TYPE_WHITE_POINT_DATA               = 0xFB // White point data
-	DTD_TYPE_STANDARD_TIMING_IDENTIFICATION = 0xFA // Standard timing identification
-	DTD_TYPE_COLOR_POINT_DATA               = 0xF9 // Color point data
-	DTD_TYPE_CVT_3_BYTE_CODE                = 0xF8 // CVT 3-byte code
-	DTD_TYPE_ADDITIONAL_STANDARD_TIMING     = 0xF7 // Additional standard timing
-	DTD_TYPE_DUMMY                          = 0x10 // Dummy
-
 	CTA_EXT_TAG_AUDIO_DATA_BLOCK              = 0x01 // Audio data block
 	CTA_EXT_TAG_VIDEO_DATA_BLOCK              = 0x02 // Video data block
 	CTA_EXT_TAG_VENDOR_SPECIFIC_DATA_BLOCK    = 0x03 // Vendor-specific data block

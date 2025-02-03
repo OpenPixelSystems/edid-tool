@@ -3,7 +3,13 @@ package blocks
 import (
 	"fmt"
 	"strings"
+
+	"github.com/openpixelsystems/edid-tool/interfaces"
 )
+
+func (md *MonitorDescriptor) Type() interfaces.DescriptorType {
+	return md.DescriptorType
+}
 
 func (md *MonitorDescriptor) PrintAsRangeDescriptor() {
 	horizontRateOffset := (md.Data[0] & 0x0C) >> 2
@@ -49,29 +55,29 @@ func (md *MonitorDescriptor) PrintAsRangeDescriptor() {
 }
 
 func (md *MonitorDescriptor) Print() {
-	switch md.Type {
-	case DTD_TYPE_MANUFACTURER_SPECIFIC:
+	switch md.DescriptorType {
+	case DESCRIPTOR_TYPE_MANUFACTURER_SPECIFIC:
 		fmt.Println("\tManufacturer specific: ", strings.Replace(string(md.Data[:]), "\n", "", -1))
-	case DTD_TYPE_MONITOR_SERIAL_NUMBER:
+	case DESCRIPTOR_TYPE_MONITOR_SERIAL_NUMBER:
 		fmt.Println("\tMonitor serial number: ", strings.Replace(string(md.Data[:]), "\n", "", -1))
-	case DTD_TYPE_UNSPECIFIED:
+	case DESCRIPTOR_TYPE_UNSPECIFIED:
 		fmt.Println("\tUnspecified")
-	case DTD_TYPE_RANGE_LIMITS:
+	case DESCRIPTOR_TYPE_RANGE_LIMITS:
 		fmt.Println("\tRange limits")
 		md.PrintAsRangeDescriptor()
-	case DTD_TYPE_MONITOR_NAME:
+	case DESCRIPTOR_TYPE_MONITOR_NAME:
 		fmt.Println("\tMonitor name: ", strings.Replace(string(md.Data[:]), "\n", "", -1))
-	case DTD_TYPE_WHITE_POINT_DATA:
+	case DESCRIPTOR_TYPE_WHITE_POINT_DATA:
 		fmt.Println("\tWhite point data")
-	case DTD_TYPE_STANDARD_TIMING_IDENTIFICATION:
+	case DESCRIPTOR_TYPE_STANDARD_TIMING_IDENTIFICATION:
 		fmt.Println("\tStandard timing identification")
-	case DTD_TYPE_COLOR_POINT_DATA:
+	case DESCRIPTOR_TYPE_COLOR_POINT_DATA:
 		fmt.Println("\tColor point data")
-	case DTD_TYPE_CVT_3_BYTE_CODE:
+	case DESCRIPTOR_TYPE_CVT_3_BYTE_CODE:
 		fmt.Println("\tCVT 3-byte code")
-	case DTD_TYPE_ADDITIONAL_STANDARD_TIMING:
+	case DESCRIPTOR_TYPE_ADDITIONAL_STANDARD_TIMING:
 		fmt.Println("\tAdditional standard timing")
-	case DTD_TYPE_DUMMY:
+	case DESCRIPTOR_TYPE_DUMMY:
 		fmt.Println("\tDummy")
 	default:
 		fmt.Println("\tReserved")
@@ -85,13 +91,14 @@ func (md *MonitorDescriptor) FromBytes(data []byte) (int, error) {
 	// parse the monitor descriptor
 	offset += 3 // skip 3 reserved bytes
 
-	md.Type = data[offset]
+	md.DescriptorType = interfaces.DescriptorType(data[offset])
 	offset += MONITOR_DESCRIPTOR_TYPE_SIZE
 
 	offset += 1 // skip reserved byte
 
 	// -1 for go array addressing.
-	copy(md.Data[:], data[offset-1:offset+DISPLAY_DESCRIPTOR_DATA_SIZE])
+	fmt.Println("To Copy:   ", data[offset:offset+DISPLAY_DESCRIPTOR_DATA_SIZE])
+	copy(md.Data[:], data[offset:offset+DISPLAY_DESCRIPTOR_DATA_SIZE+1])
 	offset += DISPLAY_DESCRIPTOR_DATA_SIZE
 
 	// create the raw byte slice
@@ -101,7 +108,35 @@ func (md *MonitorDescriptor) FromBytes(data []byte) (int, error) {
 }
 
 func (md *MonitorDescriptor) ToBytes() []byte {
-	return md.Raw
+	offset := 0
+	data := make([]byte, DISPLAY_DESCRIPTOR_SIZE)
+	// byte 0 and 0 are 0 because it's not a detailed timing descriptor
+	data[offset] = 0x00
+	offset++
+
+	data[offset] = 0x00
+	offset++
+
+	// 1 byte reserved
+	data[offset] = 0x00
+	offset++
+
+	// 1 byte type
+	data[offset] = byte(md.DescriptorType)
+	offset++
+
+	// 1 byte reserved
+	if md.DescriptorType == DESCRIPTOR_TYPE_RANGE_LIMITS {
+		data[offset] = md.Raw[offset]
+	} else {
+		data[offset] = 0x00
+	}
+	offset++
+
+	// copy the data
+	copy(data[offset:], md.Data[:])
+
+	return data
 }
 
 func (md *MonitorDescriptor) Len() int {

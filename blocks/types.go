@@ -9,6 +9,37 @@ type EDIDV2 struct {
 	Blocks  []interfaces.EDIDBlock
 }
 
+type CTAExtension struct {
+	ExtensionTag byte
+	Blocks       []interfaces.EDIDBlock
+	Checksum     byte
+	Raw          []byte
+}
+
+type CTA861Extension struct {
+	Revision        byte
+	DTDOffset       byte
+	FormatAndLength byte
+	Blocks          []interfaces.EDIDBlock
+	Raw             []byte
+}
+
+type DisplayIDExtension struct {
+	Revision          byte
+	BytesInSection    byte
+	ProductIdentifier byte
+	ExtensionCount    byte
+	DataBlocks        []interfaces.DataBlock
+	Checksum          byte
+	Raw               []byte
+}
+
+type DisplayIDDataBlock struct {
+	BlockType byte
+	Block     interfaces.DataBlock
+	Raw       []byte
+}
+
 const (
 	FH_MANUFACTURER_ID_SIZE = 3
 )
@@ -61,11 +92,11 @@ type StandardTimings struct {
 }
 
 type MonitorDescriptor struct {
-	reserved0 [3]byte
-	Type      byte
-	reserved1 byte
-	Data      [DISPLAY_DESCRIPTOR_DATA_SIZE]byte
-	Raw       []byte
+	reserved0      [3]byte
+	DescriptorType interfaces.DescriptorType
+	reserved1      byte
+	Data           [DISPLAY_DESCRIPTOR_DATA_SIZE]byte
+	Raw            []byte
 }
 
 type DetailedTimingDescriptor struct {
@@ -98,4 +129,19 @@ type ExtensionAndChecksum struct {
 	Extensions byte
 	Checksum   byte
 	Raw        []byte
+}
+
+type DataBlockTiledDisplay struct {
+	Revision                byte
+	NumberOfPayloadBytes    byte // Should be 22..
+	TileCaps                byte
+	TileTopologyAndLocation [3]byte
+	TileSize                [2]byte
+	TileMultiplierAndBezel  [5]byte
+	TileDisplayTopologyID   [9]byte
+	Raw                     []byte
+}
+
+type DataBlockVTBType1 struct {
+	Revision byte
 }

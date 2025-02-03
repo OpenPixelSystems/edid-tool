@@ -3,7 +3,13 @@ package blocks
 import (
 	"encoding/binary"
 	"fmt"
+
+	"github.com/openpixelsystems/edid-tool/interfaces"
 )
+
+func (dtd *DetailedTimingDescriptor) Type() interfaces.DescriptorType {
+	return DESCRIPTOR_TYPE_DETAILED_TIMING
+}
 
 func (dtd *DetailedTimingDescriptor) Print() {
 	fmt.Println("\tDetailed timing descriptor")

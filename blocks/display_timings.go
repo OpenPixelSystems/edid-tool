@@ -1,6 +1,7 @@
 package blocks
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/openpixelsystems/edid-tool/interfaces"
@@ -33,6 +34,12 @@ func (dtd *DisplayTimingDescriptor) FromBytes(data []byte) (int, error) {
 			nOffset, _ := md.FromBytes(data[offset:])
 			offset += nOffset
 			dtd.Descriptors = append(dtd.Descriptors, &md)
+
+			// validate ToBytes
+			fmt.Println("ToBytes(): ", md.ToBytes())
+			fmt.Println("Raw:       ", md.Raw)
+			fmt.Println("Data:      ", md.Data)
+			fmt.Println(bytes.Equal(md.ToBytes(), md.Raw))
 		}
 
 	}
